@@ -2,7 +2,7 @@
 Contributors: everpress
 Tags: gmail, google, mailster, deliverymethod, newsletter, mailsteresp, email
 Requires at least: 3.8
-Tested up to: 5.4
+Tested up to: 5.5
 Stable tag: 1.0
 License: GPLv2 or later
 PHP Version: 5.5+

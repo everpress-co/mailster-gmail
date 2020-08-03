@@ -16,7 +16,7 @@
 	</tr>
 	<tr valign="top">
 		<th scope="row"><?php esc_html_e( 'Authorized redirect URI', 'mailster-gmail' ); ?></th>
-		<td><code class="hidde" id="copy-redirect_url"><?php echo $this->get_redirect_url(); ?></code><br><a class="clipboard" data-clipboard-target="#copy-redirect_url"><?php esc_html_e( 'copy URL', 'mailster-gmail' ); ?></a></td>
+		<td><code id="copy-redirect_url"><?php echo $this->get_redirect_url(); ?></code><br><a class="clipboard" data-clipboard-target="#copy-redirect_url"><?php esc_html_e( 'copy URL', 'mailster-gmail' ); ?></a></td>
 	</tr>
 
 	<?php if ( mailster_option( 'gmail_client_id' ) && mailster_option( 'gmail_client_secret' ) ) : ?>
