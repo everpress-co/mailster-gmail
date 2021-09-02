@@ -380,22 +380,28 @@ class MailsterGmail {
 
 			$m = $service->users_messages->get( $userId, $message->id, array( 'format' => 'full' ) );
 
-			$status   = null;
-			$action   = null;
-			$MID      = null;
-			$campaign = null;
-			$hash     = null;
-			$info     = $m->getSnippet();
+			$status      = null;
+			$action      = null;
+			$MID         = null;
+			$campaign_id = null;
+			$hash        = null;
+			$info        = $m->getSnippet();
 
 			// handle reply from using client specific feature
 			if ( false !== strpos( $info, 'X-Mailster:' ) ) {
 				preg_match( '#X-Mailster-ID: ([a-f0-9]{32})#i', $info, $MID );
 				preg_match( '#X-Mailster: ([a-f0-9]{32})#i', $info, $hash );
 				preg_match( '#X-Mailster-Campaign: (\d+)#i', $info, $camp );
-				$MID      = isset( $MID[1] ) ? $MID[1] : null;
-				$hash     = isset( $hash[1] ) ? $hash[1] : null;
-				$campaign = isset( $camp[1] ) ? (int) $camp[1] : null;
+				$MID            = isset( $MID[1] ) ? $MID[1] : null;
+				$hash           = isset( $hash[1] ) ? $hash[1] : null;
+				$campaign_id    = isset( $camp[1] ) ? (int) $camp[1] : null;
+				$campaign_index = null;
 
+				// get the campaign index
+				if ( false !== strpos( $campaign_id, '-' ) ) {
+					$campaign_index = absint( strrchr( $campaign_id, '-' ) );
+					$campaign_id    = absint( $campaign_id );
+				}
 				$info   = 'list_unsubscribe';
 				$action = 'unsubscribe';
 			}
@@ -417,7 +423,14 @@ class MailsterGmail {
 									$MID = $part_header->value;
 									break;
 								case 'X-Mailster-Campaign':
-									$campaign = (int) $part_header->value;
+									$campaign_id    = $part_header->value;
+									$campaign_index = null;
+
+									// get the campaign index
+									if ( false !== strpos( $campaign_id, '-' ) ) {
+										$campaign_index = absint( strrchr( $campaign_id, '-' ) );
+										$campaign_id    = absint( $campaign_id );
+									}
 									break;
 								case 'X-Mailster':
 									$hash = $part_header->value;
@@ -447,12 +460,18 @@ class MailsterGmail {
 							preg_match( '#X-Mailster: ([a-f0-9]{32})#i', $org_message, $hash );
 							preg_match( '#X-Mailster-Campaign: (\d+)#i', $org_message, $camp );
 
-							$status   = isset( $status[1] ) ? $status[1] : null;
-							$action   = isset( $action[1] ) ? $action[1] : null;
-							$MID      = isset( $MID[1] ) ? $MID[1] : null;
-							$hash     = isset( $hash[1] ) ? $hash[1] : null;
-							$campaign = isset( $camp[1] ) ? (int) $camp[1] : null;
+							$status         = isset( $status[1] ) ? $status[1] : null;
+							$action         = isset( $action[1] ) ? $action[1] : null;
+							$MID            = isset( $MID[1] ) ? $MID[1] : null;
+							$hash           = isset( $hash[1] ) ? $hash[1] : null;
+							$campaign_id    = isset( $camp[1] ) ? (int) $camp[1] : null;
+							$campaign_index = null;
 
+							// get the campaign index
+							if ( false !== strpos( $campaign_id, '-' ) ) {
+								$campaign_index = absint( strrchr( $campaign_id, '-' ) );
+								$campaign_id    = absint( $campaign_id );
+							}
 						}
 
 						break;
@@ -474,18 +493,29 @@ class MailsterGmail {
 							break;
 						case 'unsubscribe':
 							// unsubscribe
-							mailster( 'subscribers' )->unsubscribe( $subscriber->ID, $campaign, 'list_unsubscribe' );
+							if ( version_compare( MAILSTER_VERSION, '3.0', '<' ) ) {
+								mailster( 'subscribers' )->unsubscribe( $subscriber->ID, $campaign_id, 'list_unsubscribe' );
+							} else {
+								mailster( 'subscribers' )->unsubscribe( $subscriber->ID, $campaign_id, 'list_unsubscribe', $campaign_index );
+							}
 							break;
 						case 'failed':
 							// hardbounce
-							mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign, true, $info );
+							if ( version_compare( MAILSTER_VERSION, '3.0', '<' ) ) {
+								mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign_id, true, $info );
+							} else {
+								mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign_id, true, $info, $campaign_index );
+							}
 							break;
 
 						case 'transient':
 						default:
 							// softbounce
-							mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign, false, $info );
-
+							if ( version_compare( MAILSTER_VERSION, '3.0', '<' ) ) {
+								mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign_id, false, $info );
+							} else {
+								mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign_id, false, $info, $campaign_index );
+							}
 					}
 				}
 
