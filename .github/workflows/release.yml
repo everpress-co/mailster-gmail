@@ -1,18 +1,22 @@
-name: "🚀 RELEASE: To WordPress.org"
+name: Create Release
 on:
   push:
     tags:
-      - "*"
+      - '*'
 jobs:
-  tag:
-    name: "build"
+  build:
+    name: Create Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - name: WordPress Plugin Deploy
-        uses: 10up/action-wordpress-plugin-deploy@master
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Release
+        id: create_release
+        uses: evrpress/create-release@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-          SLUG: "mailster-gmail"
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false

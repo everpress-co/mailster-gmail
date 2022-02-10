@@ -2,7 +2,7 @@
 	<?php if ( ! $verified ) : ?>
 	<tr valign="top">
 		<th scope="row">&nbsp;</th>
-		<td><p class="description"><?php echo sprintf( __( 'Please follow our guide %s and enter Client ID and Client Secret to continue.', 'mailster-gmail' ), '<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">here</a>' ); ?></p>
+		<td><p class="description"><?php echo sprintf( __( 'Please follow our guide %s and enter Client ID and Client Secret to continue.', 'mailster-gmail' ), '<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">' . __( 'here', 'mailster-gmail' ) . '</a>' ); ?></p>
 		</td>
 	</tr>
 	<?php endif; ?>
@@ -16,7 +16,7 @@
 	</tr>
 	<tr valign="top">
 		<th scope="row"><?php esc_html_e( 'Authorized redirect URI', 'mailster-gmail' ); ?></th>
-		<td><code class="hidde" id="copy-redirect_url"><?php echo $this->get_redirect_url(); ?></code><br><a class="clipboard" data-clipboard-target="#copy-redirect_url"><?php esc_html_e( 'copy URL', 'mailster-gmail' ); ?></a></td>
+		<td><code id="copy-redirect_url"><?php echo $this->get_redirect_url(); ?></code><br><a class="clipboard" data-clipboard-target="#copy-redirect_url"><?php esc_html_e( 'copy URL', 'mailster-gmail' ); ?></a></td>
 	</tr>
 
 	<?php if ( mailster_option( 'gmail_client_id' ) && mailster_option( 'gmail_client_secret' ) ) : ?>
