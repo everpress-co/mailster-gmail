@@ -6,9 +6,7 @@ class MailsterGmail {
 	private $plugin_url;
 	private $client;
 
-	/**
-	 *
-	 */
+
 	public function __construct() {
 
 		$this->plugin_path = plugin_dir_path( MAILSTER_GMAIL_FILE );
@@ -23,12 +21,6 @@ class MailsterGmail {
 	}
 
 
-	/*
-	 * init the plugin
-	 *
-	 * @access public
-	 * @return void
-	 */
 	public function init() {
 
 		if ( ! function_exists( 'mailster' ) ) {
@@ -58,15 +50,6 @@ class MailsterGmail {
 	}
 
 
-	/**
-	 * initsend function.
-	 *
-	 * uses mailster_initsend hook to set initial settings
-	 *
-	 * @access public
-	 * @return void
-	 * @param mixed $mailobject
-	 */
 	public function auth_endpoint() {
 
 		if ( isset( $_GET['mailster_gmail'] ) ) {
@@ -94,29 +77,11 @@ class MailsterGmail {
 	}
 
 
-	/**
-	 * initsend function.
-	 *
-	 * uses mailster_initsend hook to set initial settings
-	 *
-	 * @access public
-	 * @return void
-	 * @param mixed $mailobject
-	 */
 	public function get_redirect_url() {
 		return admin_url( 'edit.php?post_type=newsletter&page=mailster_settings&mailster_gmail=auth' );
 	}
 
 
-	/**
-	 * initsend function.
-	 *
-	 * uses mailster_initsend hook to set initial settings
-	 *
-	 * @access public
-	 * @return void
-	 * @param mixed $mailobject
-	 */
 	public function get_client( $code = null ) {
 
 		require_once $this->plugin_path . 'vendor/autoload.php';

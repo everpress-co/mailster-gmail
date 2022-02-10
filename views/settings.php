@@ -2,7 +2,7 @@
 	<?php if ( ! $verified ) : ?>
 	<tr valign="top">
 		<th scope="row">&nbsp;</th>
-		<td><p class="description"><?php echo sprintf( __( 'Please follow our guide %s and enter Client ID and Client Secret to continue.', 'mailster-gmail' ), '<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">here</a>' ); ?></p>
+		<td><p class="description"><?php echo sprintf( __( 'Please follow our guide %s and enter Client ID and Client Secret to continue.', 'mailster-gmail' ), '<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">' . __( 'here', 'mailster-gmail' ) . '</a>' ); ?></p>
 		</td>
 	</tr>
 	<?php endif; ?>

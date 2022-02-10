@@ -3,7 +3,7 @@ Contributors: everpress
 Tags: gmail, google, mailster, deliverymethod, newsletter, mailsteresp, email
 Requires at least: 3.8
 Tested up to: 5.9
-Stable tag: 1.1
+Stable tag: 1.2
 License: GPLv2 or later
 PHP Version: 5.5+
 
@@ -28,6 +28,9 @@ Read the [Setup Guide](https://kb.mailster.co/send-your-newsletters-via-gmail?ut
 1. Option Interface.
 
 == Changelog ==
+
+= 1.2 =
+* Fixed some typo and updated method
 
 = 1.1 =
 * Update for Mailster 3.0
