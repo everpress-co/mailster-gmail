@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Mailster Gmail Integration
-Plugin URI: https://mailster.co/?utm_campaign=wporg&utm_source=Mailster+Gmail+Integration&utm_medium=plugin
+Plugin URI: https://mailster.co/?utm_campaign=wporg&utm_source=wordpress.org&utm_medium=plugin&utm_term=Gmail
 Description: Uses Gmail to deliver emails for the Mailster Newsletter Plugin for WordPress.
 Version: 1.2
 Author: EverPress
