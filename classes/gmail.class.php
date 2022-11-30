@@ -78,7 +78,7 @@ class MailsterGmail {
 
 
 	public function get_redirect_url() {
-		return admin_url( 'edit.php?post_type=newsletter&page=mailster_settings&mailster_gmail=auth' );
+		return apply_filters( 'mailster_gmail_redirect_url', admin_url( 'edit.php?post_type=newsletter&page=mailster_settings&mailster_gmail=auth' ) );
 	}
 
 
