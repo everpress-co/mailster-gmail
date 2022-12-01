@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "62ebf8c399419706975f08b4b24439bf",
+    "content-hash": "05f2cc9fe31e02a8f5171c71359269a1",
     "packages": [
         {
             "name": "brianhenryie/strauss",

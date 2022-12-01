@@ -27,25 +27,10 @@
 			"target_directory": "vendor_prefix",
 			"namespace_prefix": "Mailster\\Gmail\\",
 			"classmap_prefix": "Mailster_Gmail_",
-			"constant_prefix": "Mailster_Gmail_",
-			"_packages": [
+			"constant_prefix": "MAILSTER_GMAIL_",
+			"packages": [
 				"google/apiclient"
 			],
-			"_override_autoload": {},
-			"_exclude_from_copy": {
-				"packages": [],
-				"namespaces": [],
-				"file_patterns": []
-			},
-			"exclude_from_prefix": {
-				"packages": [
-					"brianhenryie/strauss"
-				],
-				"namespaces": [],
-				"file_patterns": [
-					"/^psr.*$/"
-				]
-			},
 			"namespace_replacement_patterns": {},
 			"delete_vendor_files": false
 		}
