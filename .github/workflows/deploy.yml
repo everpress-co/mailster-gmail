@@ -14,7 +14,6 @@ jobs:
         uses: everpress-co/action-wordpress-plugin-deploy@develop
         with:
           generate-zip: true
-          push-to-repo: false
         env:
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
