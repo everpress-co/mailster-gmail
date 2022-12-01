@@ -1,0 +1,52 @@
+{
+	"require": {
+		"php": ">=7.4",
+		"google/apiclient": "^2.12.6"
+	},
+	"require-dev": {
+		"brianhenryie/strauss": "^0.11.1"
+	},
+	"scripts": {
+		"pre-autoload-dump": "Google\\Task\\Composer::cleanup",
+		"strauss": [
+			"vendor/bin/strauss"
+		],
+		"post-install-cmd": [
+			"@strauss",
+			"rm -rf vendor;mv vendor_prefix vendor"
+		],
+		"post-update-cmd": [
+			"@strauss",
+			"rm -rf vendor;mv vendor_prefix vendor"
+		]
+	},
+	"extra": {
+		"google/apiclient-services": [
+			"Gmail"
+		],
+		"strauss": {
+			"target_directory": "vendor_prefix",
+			"namespace_prefix": "Mailster\\Gmail\\",
+			"classmap_prefix": "Mailster_Gmail_",
+			"constant_prefix": "Mailster_Gmail_",
+			"packages": [
+				"google/apiclient"
+			],
+			"_override_autoload": {},
+			"_exclude_from_copy": {
+				"packages": [],
+				"namespaces": [],
+				"file_patterns": []
+			},
+			"_exclude_from_prefix": {
+				"packages": [],
+				"namespaces": [],
+				"file_patterns": [
+					"/^psr.*$/"
+				]
+			},
+			"namespace_replacement_patterns": {},
+			"delete_vendor_files": false
+		}
+	}
+}

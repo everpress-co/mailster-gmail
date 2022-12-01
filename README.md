@@ -1,20 +1,20 @@
 # Mailster Gmail Integration
 
-Contributors: everpress  
+Contributors: everpress, xaverb  
 Tags: gmail, google, mailster, deliverymethod, newsletter, mailsteresp, email  
 Requires at least: 3.8  
-Tested up to: 5.9  
+Tested up to: 6.0  
 Stable tag: 1.2  
 License: GPLv2 or later
 PHP Version: 5.5+
 
 ## Description
 
-> This Plugin requires [Mailster Newsletter Plugin for WordPress](https://mailster.co/?utm_campaign=wporg&utm_source=Gmail+integration+for+Mailster&utm_medium=readme)
+> This Plugin requires [Mailster Newsletter Plugin for WordPress](https://mailster.co/?utm_campaign=wporg&utm_source=wordpress.org&utm_medium=readme&utm_term=Gmail)
 
-Uses Gmail to deliver emails for the [Mailster Newsletter Plugin for WordPress](https://mailster.co/?utm_campaign=wporg&utm_source=Gmail+integration+for+Mailster&utm_medium=readme).
+Uses Gmail to deliver emails for the [Mailster Newsletter Plugin for WordPress](https://mailster.co/?utm_campaign=wporg&utm_source=wordpress.org&utm_medium=readme&utm_term=Gmail).
 
-Read the [Setup Guide](https://kb.mailster.co/send-your-newsletters-via-gmail?utm_campaign=wporg&utm_source=Gmail+integration+for+Mailster&utm_medium=readme) to get started.
+Read the [Setup Guide](https://kb.mailster.co/send-your-newsletters-via-gmail?utm_campaign=wporg&utm_source=Gmail&utm_medium=readme) to get started.
 
 ## Installation
 
@@ -46,4 +46,4 @@ Read the [Setup Guide](https://kb.mailster.co/send-your-newsletters-via-gmail?ut
 
 ## Additional Info
 
-This Plugin requires [Mailster Newsletter Plugin for WordPress](https://mailster.co/?utm_campaign=wporg&utm_source=Gmail+integration+for+Mailster&utm_medium=readme)
+This Plugin requires [Mailster Newsletter Plugin for WordPress](https://mailster.co/?utm_campaign=wporg&utm_source=wordpress.org&utm_medium=readme&utm_term=Gmail)

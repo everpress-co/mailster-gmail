@@ -78,13 +78,11 @@ class MailsterGmail {
 
 
 	public function get_redirect_url() {
-		return admin_url( 'edit.php?post_type=newsletter&page=mailster_settings&mailster_gmail=auth' );
+		return apply_filters( 'mailster_gmail_redirect_url', admin_url( 'edit.php?post_type=newsletter&page=mailster_settings&mailster_gmail=auth' ) );
 	}
 
 
 	public function get_client( $code = null ) {
-
-		require_once $this->plugin_path . 'vendor/autoload.php';
 
 		$client_id     = mailster_option( 'gmail_client_id' );
 		$client_secret = mailster_option( 'gmail_client_secret' );
@@ -92,7 +90,7 @@ class MailsterGmail {
 
 		if ( ! $this->client && $client_id && $client_secret ) {
 
-			$client = new Mailster\Google_Client();
+			$client = new Mailster\Gmail\Google\Client();
 			$client->setClientId( $client_id );
 			$client->setClientSecret( $client_secret );
 			$client->setRedirectUri( $this->get_redirect_url() );
@@ -181,8 +179,6 @@ class MailsterGmail {
 	 */
 	public function dosend( $mailobject ) {
 
-		require_once $this->plugin_path . 'vendor/scoper-autoload.php';
-
 		$client = $this->get_client();
 
 		if ( ! $client ) {
@@ -194,11 +190,11 @@ class MailsterGmail {
 		try {
 			$mailobject->mailer->PreSend();
 
-			$service = new Mailster\Google_Service_Gmail( $this->get_client() );
+			$service = new Mailster\Gmail\Google\Service\Gmail( $this->get_client() );
 
 			$rawmessage = $mailobject->mailer->getSentMIMEMessage();
 
-			$msg = new Mailster\Google_Service_Gmail_Message();
+			$msg = new Mailster\Gmail\Google\Service\Gmail\Message();
 			$msg->setRaw( rtrim( strtr( base64_encode( $rawmessage ), '+/', '-_' ), '=' ) );
 
 			$response = $service->users_messages->send( 'me', $msg );
@@ -206,7 +202,7 @@ class MailsterGmail {
 				$message_id       = $response->getId();
 				$mailobject->sent = ! empty( $message_id );
 			}
-		} catch ( Mailster\Google_Service_Exception $e ) {
+		} catch ( Mailster\Google\Service\Exception $e ) {
 			$errorObj = json_decode( $e->getMessage() );
 			$code     = $errorObj->error->code;
 			if ( 429 == $code ) {
@@ -286,12 +282,16 @@ class MailsterGmail {
 
 			if ( $client = $this->get_client() ) {
 				try {
-					$service         = new Mailster\Google_Service_Gmail( $client );
+					$service         = new Mailster\Gmail\Google\Service\Gmail( $client );
 					$response        = $service->users->getProfile( 'me' );
 					$options['from'] = $options['reply_to'] = $options['bounce'] = $response->emailAddress;
 				} catch ( Exception $e ) {
 					$errorObj = json_decode( $e->getMessage() );
-					$code     = $errorObj->error->code;
+					if ( isset( $errorObj->error->code ) ) {
+						$code = $errorObj->error->code;
+					} else {
+						$code = $errorObj->error;
+					}
 					if ( $code == 401 ) {
 						$options['gmail_token'] = '';
 					}
@@ -319,7 +319,7 @@ class MailsterGmail {
 			return false;
 		}
 
-		$service = new Mailster\Google_Service_Gmail( $client );
+		$service = new Mailster\Gmail\Google\Service\Gmail( $client );
 
 		$pageToken         = null;
 		$userId            = 'me';
@@ -491,7 +491,7 @@ class MailsterGmail {
 
 		if ( ! empty( $messages_todelete ) ) {
 			try {
-				$request = new Mailster\Google_Service_Gmail_BatchDeleteMessagesRequest();
+				$request = new Mailster\Gmail\Google\Service\Gmail\BatchDeleteMessagesRequest();
 				$request->setIds( $messages_todelete );
 				$service->users_messages->batchDelete( $userId, $request );
 			} catch ( Exception $e ) {
@@ -537,7 +537,7 @@ class MailsterGmail {
 		?>
 	<div id="message" class="error">
 	  <p>
-	   <strong>Gmail integration for Mailster</strong> requires the <a href="https://mailster.co/?utm_campaign=wporg&utm_source=Gmail+integration+for+Mailster&utm_medium=plugin">Mailster Newsletter Plugin</a>, at least version <strong><?php echo MAILSTER_GMAIL_REQUIRED_VERSION; ?></strong>.
+	   <strong>Gmail integration for Mailster</strong> requires the <a href="https://mailster.co/?utm_campaign=wporg&utm_source=wordpress.org&utm_medium=plugin&utm_term=Gmail">Mailster Newsletter Plugin</a>, at least version <strong><?php echo MAILSTER_GMAIL_REQUIRED_VERSION; ?></strong>.
 	  </p>
 	</div>
 		<?php
