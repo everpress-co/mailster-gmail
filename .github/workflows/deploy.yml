@@ -13,6 +13,8 @@ jobs:
       - name: Build
         run: |
           composer update
+          cd vendor
+          ls -as
       - name: WordPress Plugin Deploy
         uses: everpress-co/action-wordpress-plugin-deploy@develop
         with:
