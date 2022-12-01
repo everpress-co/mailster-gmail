@@ -15,5 +15,7 @@ define( 'MAILSTER_GMAIL_VERSION', '1.2' );
 define( 'MAILSTER_GMAIL_REQUIRED_VERSION', '2.4.11' );
 define( 'MAILSTER_GMAIL_FILE', __FILE__ );
 
+
+require_once dirname( __FILE__ ) . '/vendor/autoload.php';
 require_once dirname( __FILE__ ) . '/classes/gmail.class.php';
 new MailsterGmail();
