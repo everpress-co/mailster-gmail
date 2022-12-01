@@ -3,10 +3,10 @@
 Contributors: everpress, xaverb  
 Tags: gmail, google, mailster, deliverymethod, newsletter, mailsteresp, email  
 Requires at least: 3.8  
-Tested up to: 6.0  
-Stable tag: 1.2  
-License: GPLv2 or later
-PHP Version: 5.5+
+Tested up to: 6.1  
+Stable tag: 1.3.0  
+License: GPLv2 or later  
+PHP Version: 7.4+
 
 ## Description
 
@@ -28,9 +28,15 @@ Read the [Setup Guide](https://kb.mailster.co/send-your-newsletters-via-gmail?ut
 
 ### 1. Option Interface.
 
-[missing image]
+![Option Interface.](https://ps.w.org/mailster-gmail/assets/screenshot-1.png)
 
 ## Changelog
+
+### 1.3.0
+
+-   fixed: issue with third party library on PHP 8.0+
+-   added: `mailster_gmail_redirect_url` filter for redirect URL
+-   requires now PHP 7.4+
 
 ### 1.2
 
