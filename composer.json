@@ -1,11 +1,10 @@
 {
 	"require": {
 		"php": ">=7.4",
-		"google/apiclient": "^2.12.6"
-	},
-	"require-dev": {
+		"google/apiclient": "^2.12.6",
 		"brianhenryie/strauss": "^0.11.1"
 	},
+	"require-dev": {},
 	"scripts": {
 		"pre-autoload-dump": "Google\\Task\\Composer::cleanup",
 		"strauss": [
@@ -29,7 +28,7 @@
 			"namespace_prefix": "Mailster\\Gmail\\",
 			"classmap_prefix": "Mailster_Gmail_",
 			"constant_prefix": "Mailster_Gmail_",
-			"packages": [
+			"_packages": [
 				"google/apiclient"
 			],
 			"_override_autoload": {},
@@ -38,8 +37,10 @@
 				"namespaces": [],
 				"file_patterns": []
 			},
-			"_exclude_from_prefix": {
-				"packages": [],
+			"exclude_from_prefix": {
+				"packages": [
+					"brianhenryie/strauss"
+				],
 				"namespaces": [],
 				"file_patterns": [
 					"/^psr.*$/"
