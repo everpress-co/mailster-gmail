@@ -19,6 +19,11 @@
 			"rm -rf vendor;mv vendor_prefix vendor"
 		]
 	},
+	"config": {
+		"platform": {
+			"php": "7.4"
+		}
+	},
 	"extra": {
 		"google/apiclient-services": [
 			"Gmail"
