@@ -1,43 +1,53 @@
 {
+	"name": "everpress/mailster-gmail",
+	"description": "Dependencies for Mailster Gmail Integration",
 	"require": {
-		"php": ">=7.4",
-		"google/apiclient": "^2.12.6",
-		"brianhenryie/strauss": "^0.11.1"
+		"php": ">=8.1",
+		"google/apiclient": "^2.12.6"
 	},
-	"require-dev": {},
+	"require-dev": {
+		"brianhenryie/strauss": "^0.31",
+		"dealerdirect/phpcodesniffer-composer-installer": "^0.7",
+		"wp-coding-standards/wpcs": "^3.0"
+	},
 	"scripts": {
 		"pre-autoload-dump": "Google\\Task\\Composer::cleanup",
-		"strauss": [
-			"vendor/bin/strauss"
-		],
 		"post-install-cmd": [
-			"@strauss",
-			"rm -rf vendor;mv vendor_prefix vendor"
+			"@prefix-namespaces"
 		],
 		"post-update-cmd": [
-			"@strauss",
-			"rm -rf vendor;mv vendor_prefix vendor"
-		]
+			"@prefix-namespaces"
+		],
+		"prefix-namespaces": [
+			"@strauss"
+		],
+		"strauss": "@php -r \"if (is_file('vendor/bin/strauss')) { passthru(PHP_BINARY . ' vendor/bin/strauss', \\$status); exit(\\$status); }\"",
+		"check-cs": "@php ./vendor/squizlabs/php_codesniffer/bin/phpcs",
+		"fix-cs": "@php ./vendor/squizlabs/php_codesniffer/bin/phpcbf"
 	},
 	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
 		"platform": {
-			"php": "7.4"
-		}
+			"php": "8.1.32"
+		},
+		"sort-packages": true
 	},
 	"extra": {
 		"google/apiclient-services": [
 			"Gmail"
 		],
 		"strauss": {
-			"target_directory": "vendor_prefix",
+			"target_directory": "vendor-prefixed",
 			"namespace_prefix": "Mailster\\Gmail\\",
 			"classmap_prefix": "Mailster_Gmail_",
 			"constant_prefix": "MAILSTER_GMAIL_",
 			"packages": [
 				"google/apiclient"
 			],
-			"namespace_replacement_patterns": {},
-			"delete_vendor_files": false
+			"delete_vendor_packages": true,
+			"optimize_autoloader": true
 		}
 	}
 }

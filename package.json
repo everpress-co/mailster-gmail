@@ -1,0 +1,38 @@
+{
+	"name": "mailster-gmail",
+	"version": "2.0.0",
+	"description": "Gmail delivery integration for Mailster.",
+	"author": "everpress",
+	"license": "GPL-2.0-or-later",
+	"keywords": [
+		"gmail",
+		"google",
+		"mailster",
+		"newsletter",
+		"email"
+	],
+	"homepage": "https://mailster.co",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/everpress-co/mailster-gmail.git"
+	},
+	"bugs": {
+		"url": "https://github.com/everpress-co/mailster-gmail/issues"
+	},
+	"files": [
+		"*.php",
+		"classes",
+		"views",
+		"vendor-prefixed",
+		"readme.txt"
+	],
+	"devDependencies": {
+		"@wordpress/scripts": "^36.1.0"
+	},
+	"scripts": {
+		"lint": "npm run lint:pkg-json",
+		"lint:pkg-json": "wp-scripts lint-pkg-json",
+		"packages-update": "wp-scripts packages-update",
+		"plugin-zip": "wp-scripts plugin-zip"
+	}
+}

@@ -1,12 +1,57 @@
 <?php
+/**
+ * Gmail delivery integration for Mailster.
+ *
+ * @package Mailster_Gmail
+ */
 
+defined( 'ABSPATH' ) || exit;
+
+// Mailster campaign objects and Gmail API payloads use camelCase properties.
+// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+/**
+ * Registers Gmail as a Mailster delivery method and sends through the Gmail API.
+ *
+ * @since 1.0
+ */
 class MailsterGmail {
 
+	/**
+	 * Absolute filesystem path to the plugin directory.
+	 *
+	 * @since 1.0
+	 *
+	 * @var string
+	 */
 	private $plugin_path;
+
+	/**
+	 * URL to the plugin directory.
+	 *
+	 * @since 1.0
+	 *
+	 * @var string
+	 */
 	private $plugin_url;
+
+	/**
+	 * Authorized Google API client.
+	 *
+	 * @since 1.0
+	 *
+	 * @var object|null
+	 */
 	private $client;
 
 
+	/**
+	 * Hooks activation, loads translations, and registers the init callback.
+	 *
+	 * @since 1.0
+	 *
+	 * @return void
+	 */
 	public function __construct() {
 
 		$this->plugin_path = plugin_dir_path( MAILSTER_GMAIL_FILE );
@@ -21,6 +66,13 @@ class MailsterGmail {
 	}
 
 
+	/**
+	 * Registers Mailster delivery hooks or shows the missing-Mailster notice.
+	 *
+	 * @since 1.0
+	 *
+	 * @return void
+	 */
 	public function init() {
 
 		if ( ! function_exists( 'mailster' ) ) {
@@ -36,7 +88,7 @@ class MailsterGmail {
 
 			add_action( 'load-newsletter_page_mailster_settings', array( &$this, 'auth_endpoint' ) );
 
-			if ( mailster_option( 'deliverymethod' ) == 'gmail' ) {
+			if ( 'gmail' === mailster_option( 'deliverymethod' ) ) {
 
 				add_action( 'mailster_initsend', array( &$this, 'initsend' ) );
 				add_action( 'mailster_presend', array( &$this, 'presend' ) );
@@ -46,18 +98,28 @@ class MailsterGmail {
 				add_filter( 'mailster_subscriber_errors', array( $this, 'subscriber_errors' ) );
 			}
 		}
-
 	}
 
 
+	/**
+	 * Handles the Google OAuth redirect back to the delivery settings screen.
+	 *
+	 * @since 1.0
+	 *
+	 * @return void
+	 */
 	public function auth_endpoint() {
 
+		// Google's OAuth redirect does not include a WordPress nonce.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['mailster_gmail'] ) ) {
 
 			$redirect_url = admin_url( 'edit.php?post_type=newsletter&page=mailster_settings#delivery' );
+			$oauth_error  = isset( $_GET['error'] ) ? sanitize_text_field( wp_unslash( $_GET['error'] ) ) : '';
+			$oauth_code   = isset( $_GET['code'] ) ? sanitize_text_field( wp_unslash( $_GET['code'] ) ) : '';
 
-			if ( isset( $_GET['error'] ) ) {
-				switch ( $_GET['error'] ) {
+			if ( '' !== $oauth_error ) {
+				switch ( $oauth_error ) {
 					case 'access_denied':
 						mailster_notice( esc_html__( 'You have to allow access to your app in order to use Gmail as delivery method.', 'mailster-gmail' ), 'error', true );
 						break;
@@ -66,23 +128,43 @@ class MailsterGmail {
 						mailster_notice( esc_html__( 'There was an error while authorizing your app.', 'mailster-gmail' ), 'error', true );
 						break;
 				}
-			} elseif ( isset( $_GET['code'] ) ) {
+			} elseif ( '' !== $oauth_code ) {
 
-				$this->get_client( $_GET['code'] );
+				$this->get_client( $oauth_code );
 
 			}
-			wp_redirect( $redirect_url );
-
+			wp_safe_redirect( $redirect_url );
+			exit;
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 
+	/**
+	 * Returns the OAuth redirect URL, filterable via mailster_gmail_redirect_url.
+	 *
+	 * @since 1.0
+	 *
+	 * @return string OAuth redirect URL.
+	 */
 	public function get_redirect_url() {
 		return apply_filters( 'mailster_gmail_redirect_url', admin_url( 'edit.php?post_type=newsletter&page=mailster_settings&mailster_gmail=auth' ) );
 	}
 
 
+	/**
+	 * Builds or refreshes the authorized Google API client.
+	 *
+	 * @since 1.0
+	 *
+	 * @param string|null $code Optional. OAuth authorization code from Google. Default null.
+	 * @return object|null Authorized client, or null when credentials are missing.
+	 */
 	public function get_client( $code = null ) {
+
+		if ( ! class_exists( '\Mailster\Gmail\Google\Client', false ) ) {
+			require_once $this->plugin_path . 'vendor-prefixed/autoload.php';
+		}
 
 		$client_id     = mailster_option( 'gmail_client_id' );
 		$client_secret = mailster_option( 'gmail_client_secret' );
@@ -117,7 +199,7 @@ class MailsterGmail {
 					return null;
 				}
 
-				$token = json_encode( $client->getAccessToken() );
+				$token = wp_json_encode( $client->getAccessToken() );
 				remove_filter( 'mailster_verify_options', array( &$this, 'verify_options' ) );
 				mailster_update_option( 'gmail_token', $token );
 
@@ -128,7 +210,7 @@ class MailsterGmail {
 
 		if ( ! is_null( $code ) ) {
 			$this->client->authenticate( $code );
-			mailster_update_option( 'gmail_token', json_encode( $client->getAccessToken() ) );
+			mailster_update_option( 'gmail_token', wp_json_encode( $client->getAccessToken() ) );
 		}
 
 		return $this->client;
@@ -136,53 +218,56 @@ class MailsterGmail {
 
 
 	/**
-	 * initsend function.
+	 * Sets initial send options on the mailster_initsend hook.
 	 *
-	 * uses mailster_initsend hook to set initial settings
+	 * Gmail handles DKIM, so Mailster's DKIM signing is disabled.
 	 *
-	 * @access public
+	 * @since 1.0
+	 *
+	 * @param object $mailobject Mailster mail object.
 	 * @return void
-	 * @param mixed $mailobject
 	 */
 	public function initsend( $mailobject ) {
 
-		// Gmail will handle DKIM integration
+		// Gmail will handle DKIM integration.
 		$mailobject->dkim = false;
-
 	}
 
 
 	/**
-	 * presend function.
+	 * Applies per-message settings on the mailster_presend hook.
 	 *
-	 * uses the mailster_presend hook to apply settings before each mail
+	 * @since 1.0
 	 *
-	 * @access public
+	 * @param object $mailobject Mailster mail object.
 	 * @return void
-	 * @param mixed $mailobject
 	 */
 	public function presend( $mailobject ) {
 
 		$mailobject->pre_send();
-
 	}
 
 
 	/**
-	 * dosend function.
+	 * Sends the current message through the Gmail API.
 	 *
-	 * uses the mailster_dosend hook and triggers the send
+	 * @since 1.0
 	 *
-	 * @access public
-	 * @param mixed $mailobject
-	 * @return void
+	 * @param object $mailobject Mailster mail object.
+	 * @return bool|null False when sending fails, null after a successful API call.
 	 */
 	public function dosend( $mailobject ) {
 
 		$client = $this->get_client();
 
 		if ( ! $client ) {
-			$mailobject->set_error( sprintf( esc_html__( 'Please create your Gmail App as explained in our guide %s.', 'mailster-gmail' ), '<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">' . esc_html__( 'here', 'mailster-gmail' ) . '</a>' ) );
+			$mailobject->set_error(
+				sprintf(
+					/* translators: %s: setup guide link. */
+					esc_html__( 'Please create your Gmail App as explained in our guide %s.', 'mailster-gmail' ),
+					'<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">' . esc_html__( 'here', 'mailster-gmail' ) . '</a>'
+				)
+			);
 			$mailobject->sent = false;
 			return false;
 		}
@@ -195,6 +280,8 @@ class MailsterGmail {
 			$rawmessage = $mailobject->mailer->getSentMIMEMessage();
 
 			$msg = new Mailster\Gmail\Google\Service\Gmail\Message();
+			// Gmail's users.messages.send endpoint expects raw RFC822 in base64url.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 			$msg->setRaw( rtrim( strtr( base64_encode( $rawmessage ), '+/', '-_' ), '=' ) );
 
 			$response = $service->users_messages->send( 'me', $msg );
@@ -203,40 +290,50 @@ class MailsterGmail {
 				$mailobject->sent = ! empty( $message_id );
 			}
 		} catch ( Mailster\Google\Service\Exception $e ) {
-			$errorObj = json_decode( $e->getMessage() );
-			$code     = $errorObj->error->code;
-			if ( 429 == $code ) {
-				if ( ! mailster_option( 'pause_campaigns' ) && $mailobject->campaignID && defined( 'MAILSTER_DOING_CRON' ) ) {
-					$time       = preg_replace( '/(.*?)(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(.*)/', '$2', $errorObj->error->message );
-					$campaign   = mailster( 'campaigns' )->get( $mailobject->campaignID );
+			$error_obj = json_decode( $e->getMessage() );
+			$code      = isset( $error_obj->error->code ) ? (int) $error_obj->error->code : 0;
+			if ( 429 === $code ) {
+				$campaign_id = $mailobject->campaignID;
+				if ( ! mailster_option( 'pause_campaigns' ) && $campaign_id && defined( 'MAILSTER_DOING_CRON' ) ) {
+					$time       = preg_replace( '/(.*?)(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(.*)/', '$2', $error_obj->error->message );
+					$campaign   = mailster( 'campaigns' )->get( $campaign_id );
 					$timeformat = mailster( 'helper' )->timeformat();
 					$timeoffset = mailster( 'helper' )->gmt_offset( true );
-					mailster_notice( sprintf( esc_html__( 'Campaign %1$s has been paused and will resume on %2$s.', 'mailster-gmail' ), $campaign->post_title, date( $timeformat, strtotime( $time ) + $timeoffset ) ), 'info', false, 'gmail_campaign_paused_' . $mailobject->campaignID );
-					mailster( 'campaigns' )->pause( $mailobject->campaignID );
-					mailster( 'campaigns' )->resume( $mailobject->campaignID, strtotime( $time ) + 10 );
+					mailster_notice(
+						sprintf(
+							/* translators: 1: campaign title, 2: resume date. */
+							esc_html__( 'Campaign %1$s has been paused and will resume on %2$s.', 'mailster-gmail' ),
+							$campaign->post_title,
+							// Resume time is shifted by Mailster's GMT offset below.
+							// phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+							date( $timeformat, strtotime( $time ) + $timeoffset )
+						),
+						'info',
+						false,
+						'gmail_campaign_paused_' . $campaign_id
+					);
+					mailster( 'campaigns' )->pause( $campaign_id );
+					mailster( 'campaigns' )->resume( $campaign_id, strtotime( $time ) + 10 );
 				}
-			} elseif ( 401 == $code ) {
+			} elseif ( 401 === $code ) {
 				mailster_update_option( 'gmail_token', '' );
 			}
-			$mailobject->set_error( $errorObj->error->message );
+			$mailobject->set_error( $error_obj->error->message );
 			$mailobject->sent = false;
 		} catch ( Exception $e ) {
 			$mailobject->set_error( $e->getMessage() );
 			$mailobject->sent = false;
 		}
-
 	}
 
 
-
 	/**
-	 * delivery_method function.
+	 * Adds Gmail to Mailster's delivery method list.
 	 *
-	 * add the delivery method to the options
+	 * @since 1.0
 	 *
-	 * @access public
-	 * @param mixed $delivery_methods
-	 * @return void
+	 * @param array $delivery_methods Delivery method labels keyed by slug.
+	 * @return array Delivery method labels keyed by slug.
 	 */
 	public function delivery_method( $delivery_methods ) {
 		$delivery_methods['gmail'] = 'Gmail';
@@ -245,11 +342,10 @@ class MailsterGmail {
 
 
 	/**
-	 * deliverytab function.
+	 * Renders the Gmail delivery settings tab.
 	 *
-	 * the content of the tab for the options
+	 * @since 1.0
 	 *
-	 * @access public
 	 * @return void
 	 */
 	public function deliverytab() {
@@ -257,42 +353,54 @@ class MailsterGmail {
 		$verified = ! is_null( $this->get_client() );
 
 		include $this->plugin_path . '/views/settings.php';
-
 	}
 
 
-
 	/**
+	 * Copies the authorized Gmail address into the from, reply-to, and bounce options.
 	 *
-	 * @access public
-	 * @param mixed $options
-	 * @return void
+	 * @since 1.0
+	 *
+	 * @param array $options Mailster options being saved.
+	 * @return array Updated Mailster options.
 	 */
 	public function verify_options( $options ) {
 
-		if ( $options['deliverymethod'] == 'gmail' ) {
+		if ( 'gmail' === $options['deliverymethod'] ) {
 
 			$send_limit = 500;
-			if ( false && $options['send_limit'] != $send_limit ) {
+			if ( false && (int) $options['send_limit'] !== $send_limit ) {
 				$options['send_limit']  = $send_limit;
 				$options['send_period'] = 24;
 				update_option( '_transient__mailster_send_period_timeout', false );
-				add_settings_error( 'mailster_settings', uniqid(), sprintf( esc_html__( 'Send limit has been adjusted to %d for Gmail', 'mailster-gmail' ), $send_limit ), 'updated' );
+				add_settings_error(
+					'mailster_settings',
+					uniqid(),
+					sprintf(
+						/* translators: %d: daily send limit. */
+						esc_html__( 'Send limit has been adjusted to %d for Gmail', 'mailster-gmail' ),
+						$send_limit
+					),
+					'updated'
+				);
 			}
 
-			if ( $client = $this->get_client() ) {
+			$client = $this->get_client();
+			if ( $client ) {
 				try {
-					$service         = new Mailster\Gmail\Google\Service\Gmail( $client );
-					$response        = $service->users->getProfile( 'me' );
-					$options['from'] = $options['reply_to'] = $options['bounce'] = $response->emailAddress;
+					$service             = new Mailster\Gmail\Google\Service\Gmail( $client );
+					$response            = $service->users->getProfile( 'me' );
+					$options['from']     = $response->emailAddress;
+					$options['reply_to'] = $response->emailAddress;
+					$options['bounce']   = $response->emailAddress;
 				} catch ( Exception $e ) {
-					$errorObj = json_decode( $e->getMessage() );
-					if ( isset( $errorObj->error->code ) ) {
-						$code = $errorObj->error->code;
+					$error_obj = json_decode( $e->getMessage() );
+					if ( isset( $error_obj->error->code ) ) {
+						$code = $error_obj->error->code;
 					} else {
-						$code = $errorObj->error;
+						$code = $error_obj->error;
 					}
-					if ( $code == 401 ) {
+					if ( 401 === (int) $code ) {
 						$options['gmail_token'] = '';
 					}
 				}
@@ -304,10 +412,11 @@ class MailsterGmail {
 
 
 	/**
-	 * check_bounces function.
+	 * Checks the Gmail inbox for bounce and unsubscribe messages.
 	 *
-	 * @access public
-	 * @return void
+	 * @since 1.0
+	 *
+	 * @return bool|null False when a check is skipped, null after a completed scan.
 	 */
 	public function check_bounces() {
 
@@ -315,55 +424,60 @@ class MailsterGmail {
 			return false;
 		}
 
-		if ( ! ( $client = $this->get_client() ) ) {
+		$client = $this->get_client();
+		if ( ! $client ) {
 			return false;
 		}
 
 		$service = new Mailster\Gmail\Google\Service\Gmail( $client );
 
-		$pageToken         = null;
-		$userId            = 'me';
+		$page_token        = null;
+		$user_id           = 'me';
 		$messages          = array();
 		$messages_todelete = array();
-		$opt_param         = array( 'q' => 'in:(inbox OR spam) from:("Mail Delivery Subsystem") OR subject:"Please remove me from the list" after:' . date( 'Y/m/d', time() - DAY_IN_SECONDS ) );
+		$opt_param         = array(
+			'q' => 'in:(inbox OR spam) from:("Mail Delivery Subsystem") OR subject:"Please remove me from the list" after:' . date( 'Y/m/d', time() - DAY_IN_SECONDS ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Gmail search uses this local date string.
+		);
 
 		do {
 			try {
-				if ( $pageToken ) {
-					$opt_param['pageToken'] = $pageToken;
+				if ( $page_token ) {
+					$opt_param['pageToken'] = $page_token;
 				}
-				$messagesResponse = $service->users_messages->listUsersMessages( $userId, $opt_param );
-				if ( $messagesResponse->getMessages() ) {
-					$messages  = array_merge( $messages, $messagesResponse->getMessages() );
-					$pageToken = $messagesResponse->getNextPageToken();
+				$messages_response = $service->users_messages->listUsersMessages( $user_id, $opt_param );
+				if ( $messages_response->getMessages() ) {
+					$messages   = array_merge( $messages, $messages_response->getMessages() );
+					$page_token = $messages_response->getNextPageToken();
 				}
 			} catch ( Exception $e ) {
+				// Keep scanning later pages when one Gmail request fails.
+				unset( $e );
 			}
-		} while ( $pageToken );
+		} while ( $page_token );
 
 		foreach ( $messages as $id => $message ) {
 
-			$m = $service->users_messages->get( $userId, $message->id, array( 'format' => 'full' ) );
+			$m = $service->users_messages->get( $user_id, $message->id, array( 'format' => 'full' ) );
 
 			$status      = null;
 			$action      = null;
-			$MID         = null;
+			$mailster_id = null;
 			$campaign_id = null;
 			$hash        = null;
 			$info        = $m->getSnippet();
 
-			// handle reply from using client specific feature
+			// Handle a reply that used the client-specific unsubscribe feature.
 			if ( false !== strpos( $info, 'X-Mailster:' ) ) {
-				preg_match( '#X-Mailster-ID: ([a-f0-9]{32})#i', $info, $MID );
+				preg_match( '#X-Mailster-ID: ([a-f0-9]{32})#i', $info, $mailster_id );
 				preg_match( '#X-Mailster: ([a-f0-9]{32})#i', $info, $hash );
 				preg_match( '#X-Mailster-Campaign: (\d+)#i', $info, $camp );
-				$MID            = isset( $MID[1] ) ? $MID[1] : null;
+				$mailster_id    = isset( $mailster_id[1] ) ? $mailster_id[1] : null;
 				$hash           = isset( $hash[1] ) ? $hash[1] : null;
 				$campaign_id    = isset( $camp[1] ) ? (int) $camp[1] : null;
 				$campaign_index = null;
 
-				// get the campaign index
-				if ( false !== strpos( $campaign_id, '-' ) ) {
+				// Get the campaign index.
+				if ( false !== strpos( (string) $campaign_id, '-' ) ) {
 					$campaign_index = absint( strrchr( $campaign_id, '-' ) );
 					$campaign_id    = absint( $campaign_id );
 				}
@@ -371,7 +485,7 @@ class MailsterGmail {
 				$action = 'unsubscribe';
 			}
 
-			// handle regular bounce messages
+			// Handle regular bounce messages.
 			if ( ! $action ) {
 				foreach ( $m->payload->parts as $message_part ) {
 
@@ -385,14 +499,14 @@ class MailsterGmail {
 									$action = $part_header->value;
 									break;
 								case 'X-Mailster-ID':
-									$MID = $part_header->value;
+									$mailster_id = $part_header->value;
 									break;
 								case 'X-Mailster-Campaign':
 									$campaign_id    = $part_header->value;
 									$campaign_index = null;
 
-									// get the campaign index
-									if ( false !== strpos( $campaign_id, '-' ) ) {
+									// Get the campaign index.
+									if ( false !== strpos( (string) $campaign_id, '-' ) ) {
 										$campaign_index = absint( strrchr( $campaign_id, '-' ) );
 										$campaign_id    = absint( $campaign_id );
 									}
@@ -406,34 +520,37 @@ class MailsterGmail {
 				}
 			}
 
-			// handle Gmail special cases.
+			// Handle Gmail special cases.
 			if ( ! $action ) {
 				foreach ( $m->payload->headers as $message_headers ) {
 
-					if ( 'From' == $message_headers->name && 'Mail Delivery Subsystem <mailer-daemon@googlemail.com>' == $message_headers->value ) {
+					if ( 'From' === $message_headers->name && 'Mail Delivery Subsystem <mailer-daemon@googlemail.com>' === $message_headers->value ) {
 
+						// Bounce bodies are base64url payloads from the Gmail API.
+						// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 						$raw_status = base64_decode( $m->payload->parts[1]->parts[0]->body->data );
 
-						$icon_attachment_id = $m->payload->parts[0]->parts[1]->body->attachmentId;
-						if ( $attachment_id = $m->payload->parts[2]->body->attachmentId ) {
-							$org_email   = $service->users_messages_attachments->get( $userId, $message->id, $attachment_id );
+						$attachment_id = $m->payload->parts[2]->body->attachmentId;
+						if ( $attachment_id ) {
+							$org_email = $service->users_messages_attachments->get( $user_id, $message->id, $attachment_id );
+							// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 							$org_message = base64_decode( strtr( $org_email->data, '-_', '+/' ) );
 
 							preg_match( '#Status: ([0-9.]+)#i', $raw_status, $status );
 							preg_match( '#Action: ([0-9A-Za-z-]+)#i', $raw_status, $action );
-							preg_match( '#X-Mailster-ID: ([a-f0-9]{32})#i', $org_message, $MID );
+							preg_match( '#X-Mailster-ID: ([a-f0-9]{32})#i', $org_message, $mailster_id );
 							preg_match( '#X-Mailster: ([a-f0-9]{32})#i', $org_message, $hash );
 							preg_match( '#X-Mailster-Campaign: (\d+)#i', $org_message, $camp );
 
 							$status         = isset( $status[1] ) ? $status[1] : null;
 							$action         = isset( $action[1] ) ? $action[1] : null;
-							$MID            = isset( $MID[1] ) ? $MID[1] : null;
+							$mailster_id    = isset( $mailster_id[1] ) ? $mailster_id[1] : null;
 							$hash           = isset( $hash[1] ) ? $hash[1] : null;
 							$campaign_id    = isset( $camp[1] ) ? (int) $camp[1] : null;
 							$campaign_index = null;
 
-							// get the campaign index
-							if ( false !== strpos( $campaign_id, '-' ) ) {
+							// Get the campaign index.
+							if ( false !== strpos( (string) $campaign_id, '-' ) ) {
 								$campaign_index = absint( strrchr( $campaign_id, '-' ) );
 								$campaign_id    = absint( $campaign_id );
 							}
@@ -445,7 +562,7 @@ class MailsterGmail {
 				}
 			}
 
-			if ( ! empty( $hash ) && $MID == mailster_option( 'ID' ) ) {
+			if ( ! empty( $hash ) && mailster_option( 'ID' ) === $mailster_id ) {
 
 				$subscriber = mailster( 'subscribers' )->get_by_hash( $hash, false );
 
@@ -453,11 +570,11 @@ class MailsterGmail {
 
 					switch ( $action ) {
 						case 'success':
-							// no action on delayed as Gmail handles that
+							// No action on delayed, because Gmail handles that.
 						case 'delayed':
 							break;
 						case 'unsubscribe':
-							// unsubscribe
+							// Unsubscribe.
 							if ( version_compare( MAILSTER_VERSION, '3.0', '<' ) ) {
 								mailster( 'subscribers' )->unsubscribe( $subscriber->ID, $campaign_id, 'list_unsubscribe' );
 							} else {
@@ -465,7 +582,7 @@ class MailsterGmail {
 							}
 							break;
 						case 'failed':
-							// hardbounce
+							// Hard bounce.
 							if ( version_compare( MAILSTER_VERSION, '3.0', '<' ) ) {
 								mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign_id, true, $info );
 							} else {
@@ -475,7 +592,7 @@ class MailsterGmail {
 
 						case 'transient':
 						default:
-							// softbounce
+							// Soft bounce.
 							if ( version_compare( MAILSTER_VERSION, '3.0', '<' ) ) {
 								mailster( 'subscribers' )->bounce( $subscriber->ID, $campaign_id, false, $info );
 							} else {
@@ -493,9 +610,10 @@ class MailsterGmail {
 			try {
 				$request = new Mailster\Gmail\Google\Service\Gmail\BatchDeleteMessagesRequest();
 				$request->setIds( $messages_todelete );
-				$service->users_messages->batchDelete( $userId, $request );
+				$service->users_messages->batchDelete( $user_id, $request );
 			} catch ( Exception $e ) {
-
+				// Leave bounce messages in the mailbox when batch delete fails.
+				unset( $e );
 			}
 		}
 
@@ -503,59 +621,89 @@ class MailsterGmail {
 	}
 
 
+	/**
+	 * Passes subscriber errors through unchanged.
+	 *
+	 * @since 1.0
+	 *
+	 * @param array $errors Subscriber error messages.
+	 * @return array Unchanged subscriber error messages.
+	 */
 	public function subscriber_errors( $errors ) {
 		return $errors;
 	}
 
 
 	/**
-	 * section_tab_bounce function.
+	 * Displays a note that Gmail handles bouncing.
 	 *
-	 * displays a note on the bounce tab
+	 * @since 1.0
 	 *
-	 * @access public
-	 * @param mixed $options
 	 * @return void
 	 */
 	public function section_tab_bounce() {
 
 		?>
 		<div class="error inline"><p><strong><?php esc_html_e( 'Bouncing is handled by Gmail so all your settings will be ignored', 'mailster-gmail' ); ?></strong></p></div>
-
 		<?php
 	}
 
 
-
 	/**
-	 * Notice if Mailster is not available
+	 * Notice if Mailster is not available.
 	 *
-	 * @access public
+	 * @since 1.0
+	 *
 	 * @return void
 	 */
 	public function notice() {
 		?>
 	<div id="message" class="error">
-	  <p>
-	   <strong>Gmail integration for Mailster</strong> requires the <a href="https://mailster.co/?utm_campaign=wporg&utm_source=wordpress.org&utm_medium=plugin&utm_term=Gmail">Mailster Newsletter Plugin</a>, at least version <strong><?php echo MAILSTER_GMAIL_REQUIRED_VERSION; ?></strong>.
-	  </p>
+		<p>
+			<strong><?php esc_html_e( 'Gmail integration for Mailster', 'mailster-gmail' ); ?></strong>
+			<?php
+			echo wp_kses(
+				sprintf(
+					/* translators: 1: Mailster plugin link, 2: required Mailster version. */
+					__( 'requires the %1$s, at least version %2$s.', 'mailster-gmail' ),
+					'<a href="https://mailster.co/?utm_campaign=wporg&utm_source=wordpress.org&utm_medium=plugin&utm_term=Gmail">' . esc_html__( 'Mailster Newsletter Plugin', 'mailster-gmail' ) . '</a>',
+					'<strong>' . esc_html( MAILSTER_GMAIL_REQUIRED_VERSION ) . '</strong>'
+				),
+				array(
+					'a'      => array(
+						'href' => true,
+					),
+					'strong' => array(),
+				)
+			);
+			?>
+		</p>
 	</div>
 		<?php
 	}
 
 
-
 	/**
-	 * activate function
+	 * Sets default Gmail options and points the user at the delivery settings.
 	 *
-	 * @access public
+	 * @since 1.0
+	 *
 	 * @return void
 	 */
 	public function activate() {
 
 		if ( function_exists( 'mailster' ) ) {
 
-			mailster_notice( sprintf( esc_html__( 'Change the delivery method on the %s!', 'mailster-gmail' ), '<a href="edit.php?post_type=newsletter&page=mailster_settings&mailster_remove_notice=delivery_method#delivery">' . esc_html__( 'Settings Page', 'mailster-gmail' ) . '</a>' ), '', 360, 'delivery_method' );
+			mailster_notice(
+				sprintf(
+					/* translators: %s: settings page link. */
+					esc_html__( 'Change the delivery method on the %s!', 'mailster-gmail' ),
+					'<a href="edit.php?post_type=newsletter&page=mailster_settings&mailster_remove_notice=delivery_method#delivery">' . esc_html__( 'Settings Page', 'mailster-gmail' ) . '</a>'
+				),
+				'',
+				360,
+				'delivery_method'
+			);
 
 			$defaults = array(
 				'gmail_client_id'     => '',
@@ -575,21 +723,28 @@ class MailsterGmail {
 
 
 	/**
-	 * deactivate function
+	 * Switches delivery back to the simple method when this integration is deactivated.
 	 *
-	 * @access public
+	 * @since 1.0
+	 *
 	 * @return void
 	 */
 	public function deactivate() {
 
 		if ( function_exists( 'mailster' ) ) {
-			if ( mailster_option( 'deliverymethod' ) == 'gmail' ) {
+			if ( 'gmail' === mailster_option( 'deliverymethod' ) ) {
 				mailster_update_option( 'deliverymethod', 'simple' );
-				mailster_notice( sprintf( __( 'Change the delivery method on the %s!', 'mailster-gmail' ), '<a href="edit.php?post_type=newsletter&page=mailster_settings&mailster_remove_notice=delivery_method#delivery">Settings Page</a>' ), '', 360, 'delivery_method' );
+				mailster_notice(
+					sprintf(
+						/* translators: %s: settings page link. */
+						esc_html__( 'Change the delivery method on the %s!', 'mailster-gmail' ),
+						'<a href="edit.php?post_type=newsletter&page=mailster_settings&mailster_remove_notice=delivery_method#delivery">' . esc_html__( 'Settings Page', 'mailster-gmail' ) . '</a>'
+					),
+					'',
+					360,
+					'delivery_method'
+				);
 			}
 		}
 	}
-
-
-
 }
