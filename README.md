@@ -3,8 +3,8 @@
 Contributors: everpress, mailster, xaverb  
 Tags: gmail, google, mailster, newsletter, email  
 Requires at least: 6.0  
-Tested up to: 6.5  
-Stable tag: 1.3.1  
+Tested up to: 7.1  
+Stable tag: 2.0.0  
 Requires PHP: 8.1  
 License: GPLv2 or later
 
@@ -84,9 +84,9 @@ The settings screen shows the redirect URI to register in Google Cloud. Develope
 
 ## Changelog
 
-### Unreleased
+### 2.0.0
 
-- changed: requires PHP 8.1+
+- changed: requires PHP 8.1 or newer
 
 ### 1.3.1
 
