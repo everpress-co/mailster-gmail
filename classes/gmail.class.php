@@ -49,6 +49,8 @@ class MailsterGmail {
 	 * Hooks activation, loads translations, and registers the init callback.
 	 *
 	 * @since 1.0
+	 *
+	 * @return void
 	 */
 	public function __construct() {
 
@@ -143,7 +145,7 @@ class MailsterGmail {
 	 *
 	 * @since 1.0
 	 *
-	 * @return string
+	 * @return string OAuth redirect URL.
 	 */
 	public function get_redirect_url() {
 		return apply_filters( 'mailster_gmail_redirect_url', admin_url( 'edit.php?post_type=newsletter&page=mailster_settings&mailster_gmail=auth' ) );
@@ -155,8 +157,8 @@ class MailsterGmail {
 	 *
 	 * @since 1.0
 	 *
-	 * @param string|null $code OAuth authorization code from Google.
-	 * @return object|null
+	 * @param string|null $code Optional. OAuth authorization code from Google. Default null.
+	 * @return object|null Authorized client, or null when credentials are missing.
 	 */
 	public function get_client( $code = null ) {
 
@@ -331,7 +333,7 @@ class MailsterGmail {
 	 * @since 1.0
 	 *
 	 * @param array $delivery_methods Delivery method labels keyed by slug.
-	 * @return array
+	 * @return array Delivery method labels keyed by slug.
 	 */
 	public function delivery_method( $delivery_methods ) {
 		$delivery_methods['gmail'] = 'Gmail';
@@ -360,7 +362,7 @@ class MailsterGmail {
 	 * @since 1.0
 	 *
 	 * @param array $options Mailster options being saved.
-	 * @return array
+	 * @return array Updated Mailster options.
 	 */
 	public function verify_options( $options ) {
 
@@ -625,7 +627,7 @@ class MailsterGmail {
 	 * @since 1.0
 	 *
 	 * @param array $errors Subscriber error messages.
-	 * @return array
+	 * @return array Unchanged subscriber error messages.
 	 */
 	public function subscriber_errors( $errors ) {
 		return $errors;
