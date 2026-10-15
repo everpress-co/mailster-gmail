@@ -16,7 +16,7 @@ permissions:
   pull-requests: read
 
 jobs:
-  # Strauss 0.31 resolves on PHP 8.1+. The plugin itself still runs on PHP 7.4.
+  # Gmail SDK and Strauss require PHP 8.1+.
   unit-tests:
     uses: ./.github/workflows/unit-tests-reusable.yml
     with:

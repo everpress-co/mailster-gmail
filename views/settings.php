@@ -1,8 +1,34 @@
+<?php
+/**
+ * Gmail delivery settings for the Mailster delivery tab.
+ *
+ * @package Mailster_Gmail
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+?>
 <table class="form-table">
 	<?php if ( ! $verified ) : ?>
 	<tr valign="top">
 		<th scope="row">&nbsp;</th>
-		<td><p class="description"><?php echo sprintf( __( 'Please follow our guide %s and enter Client ID and Client Secret to continue.', 'mailster-gmail' ), '<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">' . __( 'here', 'mailster-gmail' ) . '</a>' ); ?></p>
+		<td><p class="description">
+		<?php
+		echo wp_kses(
+			sprintf(
+				/* translators: %s: setup guide link. */
+				__( 'Please follow our guide %s and enter Client ID and Client Secret to continue.', 'mailster-gmail' ),
+				'<a href="https://kb.mailster.co/send-your-newsletters-via-gmail/" class="external">' . esc_html__( 'here', 'mailster-gmail' ) . '</a>'
+			),
+			array(
+				'a' => array(
+					'href'  => true,
+					'class' => true,
+				),
+			)
+		);
+		?>
+		</p>
 		</td>
 	</tr>
 	<?php endif; ?>
@@ -16,7 +42,7 @@
 	</tr>
 	<tr valign="top">
 		<th scope="row"><?php esc_html_e( 'Authorized redirect URI', 'mailster-gmail' ); ?></th>
-		<td><code id="copy-redirect_url"><?php echo $this->get_redirect_url(); ?></code><br><a class="clipboard" data-clipboard-target="#copy-redirect_url"><?php esc_html_e( 'copy URL', 'mailster-gmail' ); ?></a></td>
+		<td><code id="copy-redirect_url"><?php echo esc_html( $this->get_redirect_url() ); ?></code><br><a class="clipboard" data-clipboard-target="#copy-redirect_url"><?php esc_html_e( 'copy URL', 'mailster-gmail' ); ?></a></td>
 	</tr>
 
 	<?php if ( mailster_option( 'gmail_client_id' ) && mailster_option( 'gmail_client_secret' ) ) : ?>
@@ -37,7 +63,7 @@
 		<?php else : ?>
 
 			<?php
-			$authurl = add_query_arg(
+			$mailster_gmail_auth_url = add_query_arg(
 				array(
 					'response_type'          => 'code',
 					'access_type'            => 'offline',
@@ -49,11 +75,11 @@
 					'include_granted_scopes' => 'true',
 				),
 				'https://accounts.google.com/o/oauth2/auth'
-			)
+			);
 			?>
 		<tr valign="top">
 			<th scope="row"></th>
-			<td><a class="button button-hero button-primary" href="<?php echo esc_url( $authurl ); ?>"><?php esc_html_e( 'Authorize', 'mailster-gmail' ); ?></a></td>
+			<td><a class="button button-hero button-primary" href="<?php echo esc_url( $mailster_gmail_auth_url ); ?>"><?php esc_html_e( 'Authorize', 'mailster-gmail' ); ?></a></td>
 		</tr>
 
 		<?php endif; ?>

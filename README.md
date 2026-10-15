@@ -1,12 +1,12 @@
 # Mailster Gmail Integration
 
 Contributors: everpress, mailster, xaverb  
-Tags: gmail, google, mailster, deliverymethod, newsletter, mailsteresp, email  
+Tags: gmail, google, mailster, newsletter, email  
 Requires at least: 6.0  
 Tested up to: 6.5  
 Stable tag: 1.3.1  
 License: GPLv2 or later  
-PHP Version: 7.4+
+PHP Version: 8.1+
 
 ## Description
 
@@ -31,6 +31,10 @@ Read the [Setup Guide](https://kb.mailster.co/send-your-newsletters-via-gmail?ut
 ![Option Interface.](https://ps.w.org/mailster-gmail/assets/screenshot-1.png)
 
 ## Changelog
+
+### Unreleased
+
+- changed: requires PHP 8.1+
 
 ### 1.3.1
 
